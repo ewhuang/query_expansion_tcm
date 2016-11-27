@@ -7,6 +7,16 @@ import os
 import lda
 import time
 
+disease_set = set([])
+
+def generate_folders():
+    '''
+    Creates the results directory.
+    '''
+    res_dir = './results/'
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+
 def get_patient_dct():
     '''
     Returns dictionary
@@ -14,33 +24,36 @@ def get_patient_dct():
     Value: dictionary, where keys are (name, DOB) pairs and values are tuples
     containing the diseases, diagnosis dates, symptoms, and herbs of each visit.
     '''
+    # Keep track of the unique set of diseases so we know n_topics.
+    global disease_set
     date_format = '%Y-%m-%d'
     patient_dct = {}
     f = open('./data/HIS_tuple_word.txt', 'r')
     for i, line in enumerate(f):
-        diseases, name, dob, diagnosis_date, symptoms, herbs = line.split('\t')
+        diseases, name, dob, visit_date, symptoms, herbs = line.split('\t')
         # Always ends with a colon, so the last element of the split will be
         # the empty string.
         disease_list = diseases.split(':')[:-1]
-        
-        diagnosis_date = diagnosis_date.split('，')[1][:len('xxxx-xx-xx')]
-        # Format the diagnosis date.
-        diagnosis_date = datetime.strptime(diagnosis_date, date_format)
+        disease_set = disease_set.union(disease_list)
 
-        symptom_list = symptoms.split(':')[:-1]
-        herb_list = herbs.split(':')[:-1]
-        # Skip visits that don't have a complete record.
+        visit_date = visit_date.split('，')[1][:len('xxxx-xx-xx')]
+        # Format the diagnosis date.
+        visit_date = datetime.strptime(visit_date, date_format)
+
+        # Format symptom and herb lists and remove duplicates.
+        symptom_list = list(set(symptoms.split(':')[:-1]))
+        herb_list = list(set(herbs.split(':')[:-1]))
+
+        # Skip visit records that aren't complete.
         if len(symptom_list) == 0 or len(herb_list) == 0:
             continue
 
-        # Add the listing to the dictionary.
+        # Name, date of birth pair uniquely identifies a patient.
         key = (name, dob)
-        # Each unique patient is its own dictionary.
+        # Initialize the patient's visit dictionary.
         if key not in patient_dct:
             patient_dct[key] = {}
-        # Remove duplicates from our symptom and herb list.
-        patient_dct[key][diagnosis_date] = (disease_list, list(set(symptom_list
-            )), list(set(herb_list)))
+        patient_dct[key][visit_date] = (disease_list, symptom_list, herb_list)
     f.close()
 
     return patient_dct
@@ -94,23 +107,14 @@ def get_matrix_from_dct(patient_dct, code_list):
             continue
         for date in sorted(visit_dct.keys()):
             disease_list, symptom_list, herb_list = visit_dct[date]
-            # Convert each symptom/herb to their index in the code list.
             curr_code_list = symptom_list + herb_list
-            curr_code_list = [code_list.index(code) for code in curr_code_list]
-            curr_row = [0 for i in range(len(code_list))]
-            for code in curr_code_list:
-                curr_row[code] += 1
+            # Create binary vectors for each patient visit.
+            curr_row = [1 if c in curr_code_list else 0 for c in code_list]
             patient_matrix += [curr_row]
     return np.array(patient_matrix)
 
-def generate_folders():
-    res_dir = './results/'
-    if not os.path.exists(res_dir):
-        os.makedirs(res_dir)
-
 def run_baseline_lda(patient_matrix, code_list):
-    # TODO: change n_topics to number of unique diseases.
-    model = lda.LDA(n_topics=20, n_iter=1500, random_state=1)
+    model = lda.LDA(n_topics=len(disease_set), n_iter=1500, random_state=1)
     model.fit(patient_matrix)
     topic_word = model.topic_word_
     n_top_words = 20
@@ -126,7 +130,7 @@ def main():
     code_list = get_symptom_and_herb_counts(patient_dct)
     patient_matrix = get_matrix_from_dct(patient_dct, code_list)
 
-    # Run LDA
+    # Run LDA.
     run_baseline_lda(patient_matrix, code_list)
 
 if __name__ == '__main__':
