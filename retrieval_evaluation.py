@@ -124,22 +124,29 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index):
                 ndcg_dct[k] = []
             ndcg_dct[k] += [ndcg_at_k(rel_list, k)]
     return ndcg_dct
-    return sum(ndcg_list) / float(len(ndcg_list))
 
 def main():
-    test_fname = './data/HIS_tuple_test.txt'
-    train_fname = './data/HIS_tuple_train.txt'
-    query_dct = read_input_file(test_fname)
-    corpus_dct = read_input_file(train_fname)
-    inverted_index = get_inverted_index(corpus_dct)
+    method_type = 'no_expansion'
+    avg_ndcg_dct = {}
+    for run_num in range(10):
+        test_fname = './data/train_test/test_%s_%d.txt' % (method_type, run_num)
+        train_fname = './data/train_test/train_%s_%d.txt' % (method_type,
+            run_num)
+        query_dct = read_input_file(test_fname)
+        corpus_dct = read_input_file(train_fname)
+        inverted_index = get_inverted_index(corpus_dct)
 
-    out = open('./results/ndcg_no_expansion.txt', 'w')
-    # for k in [10, 50, 100, 200, 500, 1000]:
-        # avg_ndcg = evaluate_retrieval(query_dct, corpus_dct, inverted_index, k)
-        # out.write('%f\t%d\n' % (avg_ndcg, k))
-    ndcg_dct = evaluate_retrieval(query_dct, corpus_dct, inverted_index)
+        ndcg_dct = evaluate_retrieval(query_dct, corpus_dct, inverted_index)
+        # Average the ndcg across all runs.
+        for k in k_list:
+            ndcg_list = ndcg_dct[k]
+            if k not in avg_ndcg_dct:
+                avg_ndcg_dct[k] = []
+            avg_ndcg_dct[k] += ndcg_list
+
+    out = open('./results/ndcg_%s.txt' % method_type, 'w')
     for k in k_list:
-        ndcg_list = ndcg_dct[k]
+        ndcg_list = avg_ndcg_dct[k]
         avg_ndcg = sum(ndcg_list) / float(len(ndcg_list))
         out.write('%f\t%d\n' % (avg_ndcg, k))        
     out.close()
