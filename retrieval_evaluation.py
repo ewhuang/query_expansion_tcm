@@ -5,7 +5,9 @@ import operator
 from rank_metrics import ndcg_at_k
 import time
 
-# This script takes as input a biLDA 
+# This script takes as input a biLDA or baseline, and evaluates based on the
+# the queries of the test data. 10 fold CV.
+# Run time: 22 minutes.
 
 num_docs = 0
 avg_doc_len = 0.0
