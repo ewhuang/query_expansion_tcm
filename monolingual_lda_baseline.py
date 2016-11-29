@@ -6,6 +6,7 @@ import numpy as np
 import os
 import lda
 import time
+import sys
 
 disease_set = set([])
 
@@ -17,7 +18,7 @@ def generate_folders():
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
 
-def get_patient_dct():
+def get_patient_dct(filename):
     '''
     Returns dictionary
     Key: (name, date of birth) -> (str, str)
@@ -28,7 +29,7 @@ def get_patient_dct():
     global disease_set
     date_format = '%Y-%m-%d'
     patient_dct = {}
-    f = open('./data/HIS_tuple_word.txt', 'r')
+    f = open(filename, 'r')
     for i, line in enumerate(f):
         diseases, name, dob, visit_date, symptoms, herbs = line.split('\t')
         # Always ends with a colon, so the last element of the split will be
@@ -122,18 +123,24 @@ def run_baseline_lda(patient_matrix, code_list):
         topic_words = np.array(code_list)[np.argsort(topic_dist)][:-(
             n_top_words+1):-1]
         print 'Topic %d: %s' % (i, ','.join(topic_words))
-
+    return topic_word
+    
 def main():
+
+    if len(sys.argv) == 2:
+        filename=sys.argv[1]
+    else:
+        filename='./data/HIS_tuple_word.txt'
+    print filename
     generate_folders()
-    patient_dct = get_patient_dct()
+    patient_dct = get_patient_dct(filename)
     # code_list is the vocabulary list.
     code_list = get_symptom_and_herb_counts(patient_dct)
     patient_matrix = get_matrix_from_dct(patient_dct, code_list)
 
     # Run LDA.
-    run_baseline_lda(patient_matrix, code_list)
+    topic_word = run_baseline_lda(patient_matrix, code_list)
+    np.savetxt('lda_word_distribution.txt',topic_word)
 
 if __name__ == '__main__':
-    start_time = time.time()
     main()
-    print "---%f seconds---" % (time.time() - start_time)

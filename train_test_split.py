@@ -26,5 +26,5 @@ for run_num in range(10):
     print "Testing set size: ", len(test_tbl)
     print "Training set size: ", len(train_tbl)
     print "Checking that two tables sum up up to original data size: ", len(test_tbl)+len(train_tbl)==numRecords
-    test_tbl.to_csv('./data/train_test/test_no_expansion_%d.txt' % run_num,delimiter='\t',header=None,index=False)
-    train_tbl.to_csv('./data/train_test/train_no_expansion_%d.txt' % run_num,delimiter='\t',header=None,index=False)
+    test_tbl.to_csv('./data/train_test/test_no_expansion_%d.txt' % run_num,sep='\t',delimiter='\t',header=None,index=False)
+    train_tbl.to_csv('./data/train_test/train_no_expansion_%d.txt' % run_num,sep='\t',delimiter='\t',header=None,index=False)
