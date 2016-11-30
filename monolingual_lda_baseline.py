@@ -59,7 +59,7 @@ def get_patient_dct(filename):
 
     return patient_dct
 
-def get_symptom_and_herb_counts(patient_dct):
+def get_symptom_and_herb_counts(patient_dct,runFile=""):
     '''
     Given the patient dictionary, count the symptom and herb occurrences in
     patients with more than one visit. Writes the counts out to file.
@@ -84,12 +84,12 @@ def get_symptom_and_herb_counts(patient_dct):
                 herb_count_dct[herb] += 1
 
     # Write out the unique symptoms and herbs to file.
-    herb_out = open('./data/herb_count_dct.txt', 'w')
+    herb_out = open('./data/herb_count_dct_{}'.format(runFile), 'w')
     for herb in herb_count_dct:
         herb_out.write('%s\t%d\n' % (herb, herb_count_dct[herb]))
     herb_out.close()
 
-    symptom_out = open('./data/symptom_count_dct.txt', 'w')
+    symptom_out = open('./data/symptom_count_dct_{}'.format(runFile), 'w')
     for symptom in symptom_count_dct:
         symptom_out.write('%s\t%d\n' % (symptom, symptom_count_dct[symptom]))
     symptom_out.close()
@@ -133,17 +133,17 @@ def main():
         filename='./data/HIS_tuple_word.txt'
     print filename
     generate_folders()
-    runIdx = filename.split('/')[-1]#.split('_')[-1]
-    print "runIdx:",runIdx
-    print 'lda_word_distribution_{}'.format(runIdx)
+    runFile = filename.split('/')[-1]#.split('_')[-1]
+    print "runFile:",runFile
+    print 'lda_word_distribution_{}'.format(runFile)
     patient_dct = get_patient_dct(filename)
     # code_list is the vocabulary list.
-    code_list = get_symptom_and_herb_counts(patient_dct)
+    code_list = get_symptom_and_herb_counts(patient_dct,runFile)
     patient_matrix = get_matrix_from_dct(patient_dct, code_list)
 
     # Run LDA.
     topic_word = run_baseline_lda(patient_matrix, code_list)
-    np.savetxt('lda_word_distribution_{}'.format(runIdx),topic_word)
+    np.savetxt('./results/lda_word_distribution_{}'.format(runFile),topic_word)
 
 if __name__ == '__main__':
     main()
