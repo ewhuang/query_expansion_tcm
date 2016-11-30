@@ -124,7 +124,7 @@ def run_baseline_lda(patient_matrix, code_list):
             n_top_words+1):-1]
         print 'Topic %d: %s' % (i, ','.join(topic_words))
     return topic_word
-    
+
 def main():
 
     if len(sys.argv) == 2:
@@ -133,6 +133,9 @@ def main():
         filename='./data/HIS_tuple_word.txt'
     print filename
     generate_folders()
+    runIdx = filename.split('/')[-1]#.split('_')[-1]
+    print "runIdx:",runIdx
+    print 'lda_word_distribution_{}'.format(runIdx)
     patient_dct = get_patient_dct(filename)
     # code_list is the vocabulary list.
     code_list = get_symptom_and_herb_counts(patient_dct)
@@ -140,7 +143,7 @@ def main():
 
     # Run LDA.
     topic_word = run_baseline_lda(patient_matrix, code_list)
-    np.savetxt('lda_word_distribution.txt',topic_word)
+    np.savetxt('lda_word_distribution_{}'.format(runIdx),topic_word)
 
 if __name__ == '__main__':
     main()
