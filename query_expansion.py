@@ -41,7 +41,7 @@ def query_expansion(runIdx):
 	        #Write expanded query to file
 	        expanded_query = query.split('\t')
 	        expanded_query[4] +=":".join(expansion_terms)
-	        test_lda_expansion_file.write('\t'.join(expanded_query)+'\n')
+	        test_lda_expansion_file.write('\t'.join(expanded_query))
 	test_lda_expansion_file.close()
 for run in range(10):
 	query_expansion(run)

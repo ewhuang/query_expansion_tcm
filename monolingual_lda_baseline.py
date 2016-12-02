@@ -1,12 +1,16 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from datetime import datetime
+import datetime
 import numpy as np
 import os
 import lda
 import time
-import sys
+
+### This script runs regular LDA on a patient record training set (90% of the
+### original data). Writes out the herb counts, symptom counts, code list (for
+### mapping symptoms/herbs to integers), and the word distributions for each
+### topic. The number of topics will match the number of unique diseases.
 
 disease_set = set([])
 
@@ -17,6 +21,15 @@ def generate_folders():
     res_dir = './results/'
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
+    count_dir = './data/count_dictionaries/'
+    if not os.path.exists(count_dir):
+        os.makedirs(count_dir)
+    code_list_dir = './data/code_lists/'
+    if not os.path.exists(code_list_dir):
+        os.makedirs(code_list_dir)
+    lda_res_dir = './results/lda_word_distributions/'
+    if not os.path.exists(lda_res_dir):
+        os.makedirs(lda_res_dir)
 
 def get_patient_dct(filename):
     '''
@@ -39,7 +52,7 @@ def get_patient_dct(filename):
 
         visit_date = visit_date.split('，')[1][:len('xxxx-xx-xx')]
         # Format the diagnosis date.
-        visit_date = datetime.strptime(visit_date, date_format)
+        visit_date = datetime.datetime.strptime(visit_date, date_format)
 
         # Format symptom and herb lists and remove duplicates.
         symptom_list = list(set(symptoms.split(':')[:-1]))
@@ -54,12 +67,16 @@ def get_patient_dct(filename):
         # Initialize the patient's visit dictionary.
         if key not in patient_dct:
             patient_dct[key] = {}
+        # If multiple visits in one day, add on one second to each day.
+        while visit_date in patient_dct[key]:
+            visit_date += datetime.timedelta(0,1)
+        # list(set()) removes duplicates.
         patient_dct[key][visit_date] = (disease_list, symptom_list, herb_list)
     f.close()
 
     return patient_dct
 
-def get_symptom_and_herb_counts(patient_dct,runFile=""):
+def get_symptom_and_herb_counts(patient_dct, fold_num):
     '''
     Given the patient dictionary, count the symptom and herb occurrences in
     patients with more than one visit. Writes the counts out to file.
@@ -84,17 +101,28 @@ def get_symptom_and_herb_counts(patient_dct,runFile=""):
                 herb_count_dct[herb] += 1
 
     # Write out the unique symptoms and herbs to file.
-    herb_out = open('./data/herb_count_dct_{}'.format(runFile), 'w')
+    herb_out = open('./data/count_dictionaries/herb_count_dct_%s.txt' %
+        fold_num, 'w')
     for herb in herb_count_dct:
         herb_out.write('%s\t%d\n' % (herb, herb_count_dct[herb]))
     herb_out.close()
 
-    symptom_out = open('./data/symptom_count_dct_{}'.format(runFile), 'w')
+    symptom_out = open('./data/count_dictionaries/symptom_count_dct_%s.txt' %
+        fold_num, 'w')
     for symptom in symptom_count_dct:
         symptom_out.write('%s\t%d\n' % (symptom, symptom_count_dct[symptom]))
     symptom_out.close()
 
     return list(set(symptom_count_dct.keys()).union(herb_count_dct.keys()))
+
+def write_code_list(code_list, fold_num):
+    '''
+    Writes the code list out to file.
+    '''
+    out = open('./data/code_lists/code_list_%s.txt' % fold_num, 'w')
+    for code in code_list:
+        out.write('%s\n' % code)
+    out.close()
 
 def get_matrix_from_dct(patient_dct, code_list):
     '''
@@ -118,32 +146,34 @@ def run_baseline_lda(patient_matrix, code_list):
     model = lda.LDA(n_topics=len(disease_set), n_iter=1500, random_state=1)
     model.fit(patient_matrix)
     topic_word = model.topic_word_
-    n_top_words = 20
-    for i, topic_dist in enumerate(topic_word):
-        topic_words = np.array(code_list)[np.argsort(topic_dist)][:-(
-            n_top_words+1):-1]
-        print 'Topic %d: %s' % (i, ','.join(topic_words))
+    # n_top_words = 20
+    # for i, topic_dist in enumerate(topic_word):
+    #     topic_words = np.array(code_list)[np.argsort(topic_dist)][:-(
+    #         n_top_words+1):-1]
+    #     print 'Topic %d: %s' % (i, ','.join(topic_words))
     return topic_word
 
 def main():
-
-    if len(sys.argv) == 2:
-        filename=sys.argv[1]
-    else:
-        filename='./data/HIS_tuple_word.txt'
-    print filename
     generate_folders()
-    runFile = filename.split('/')[-1]#.split('_')[-1]
-    print "runFile:",runFile
-    print 'lda_word_distribution_{}'.format(runFile)
-    patient_dct = get_patient_dct(filename)
-    # code_list is the vocabulary list.
-    code_list = get_symptom_and_herb_counts(patient_dct,runFile)
-    patient_matrix = get_matrix_from_dct(patient_dct, code_list)
 
-    # Run LDA.
-    topic_word = run_baseline_lda(patient_matrix, code_list)
-    np.savetxt('./results/lda_word_distribution_{}'.format(runFile),topic_word)
+    for fold_num in range(10):
+        # Fetch the training patient record dictionary.
+        patient_fname = './data/train_test/train_no_expansion_%s.txt' % fold_num
+        patient_dct = get_patient_dct(patient_fname)
+
+        # code_list is the vocabulary list.
+        code_list = get_symptom_and_herb_counts(patient_dct, fold_num)
+        write_code_list(code_list, fold_num)
+
+        # Convert the patient dictionary to a matrix for LDA.
+        patient_matrix = get_matrix_from_dct(patient_dct, code_list)
+
+        # Run LDA.
+        topic_word = run_baseline_lda(patient_matrix, code_list)
+        np.savetxt('./results/lda_word_distributions/lda_word_distribution_%s'
+            '.txt' % fold_num, topic_word)
 
 if __name__ == '__main__':
+    start_time = time.time()
     main()
+    print "---%f seconds---" % (time.time() - start_time)
