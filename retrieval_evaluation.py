@@ -3,6 +3,7 @@
 import math
 import operator
 from rank_metrics import ndcg_at_k
+import sys
 import time
 
 # This script takes as input a biLDA or baseline, and evaluates based on the
@@ -25,7 +26,7 @@ def read_input_file(fname):
     record_dct = {}
     f = open(fname, 'r')
     for i, line in enumerate(f):
-        diseases, name, dob, visit_date, symptoms, herbs = line.split(',')
+        diseases, name, dob, visit_date, symptoms, herbs = line.split('\t')
         
         # Establish the dictionary key.
         key = (name, dob, visit_date)
@@ -128,12 +129,17 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index):
     return ndcg_dct
 
 def main():
-    method_type = 'no_expansion'
+    if len(sys.argv) != 2:
+        print 'Usage: python %s no/lda/bilda' % sys.argv[0]
+        exit()
+    global lda_type
+    assert sys.argv[1] in ['no', 'lda', 'bilda']
+    method_type = '%s_expansion' % sys.argv[1]
+
     avg_ndcg_dct = {}
     for run_num in range(10):
         test_fname = './data/train_test/test_%s_%d.txt' % (method_type, run_num)
-        train_fname = './data/train_test/train_%s_%d.txt' % (method_type,
-            run_num)
+        train_fname = './data/train_test/train_no_expansion_%d.txt' % run_num
         query_dct = read_input_file(test_fname)
         corpus_dct = read_input_file(train_fname)
         inverted_index = get_inverted_index(corpus_dct)

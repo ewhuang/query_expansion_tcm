@@ -11,7 +11,7 @@
 
 ### LDA Baseline
 
-2.  Runs regular LDA for each of the ten training sets. Writes out the word
+1.  Runs regular LDA for each of the ten training sets. Writes out the word
     distributions in nxm format. n is the number of unique diseases, and m
     is the number of codes. Code mappings follow ./data/code_lists/
 
@@ -21,7 +21,7 @@
 
 ### Query Expansions
 
-3.  Adds the appropriate query expansion terms to each patient record's list of
+1.  Adds the appropriate query expansion terms to each patient record's list of
     symptoms. The number of expansions terms is equal to twice the number of
     query terms.
 
@@ -31,7 +31,7 @@
 
 ### Method Evaluations
 
-4.  Evaluates the retrievals using Okapi BM25. Relevant documents are patient
+1.  Evaluates the retrievals using Okapi BM25. Relevant documents are patient
     records that share diseases with the query patient. Currently using NDCG 
     as the rank metric, where gain is calculated by the number of intersecting
     diseases between the query and document.
