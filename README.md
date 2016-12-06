@@ -37,5 +37,14 @@
     diseases between the query and document.
 
     ```bash
-    $ python retrieval_evaluation.py
+    $ python retrieval_evaluation.py no/lda/bilda rank_metric
+    ```
+
+    rank_metric in ['ndcg', 'precision', 'recall']
+
+2.  Runs the paired t-tests comparing each of the topic model-based query
+    expansion to the baseline without expansion.
+
+    ```bash
+    $ python significance_test.py lda/bilda
     ```

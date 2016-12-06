@@ -2,19 +2,19 @@
 
 import math
 import operator
-from rank_metrics import ndcg_at_k
+from rank_metrics import ndcg_at_k, precision_at_k
 import sys
 import time
 
 # This script takes as input a biLDA or baseline, and evaluates based on the
 # the queries of the test data. 10 fold CV.
-# Run time: 22 minutes.
+# Run time: 9 minutes.
 
 num_docs = 0
 avg_doc_len = 0.0
 k_1 = 1.5
 b = 0.75
-k_list = [10, 50, 100, 200, 500, 1000, 1500, 2000, 5000]
+k_list = [10, 50, 100]
 
 def read_input_file(fname):
     '''
@@ -39,7 +39,7 @@ def read_input_file(fname):
     f.close()
     return record_dct
 
-def get_inverted_index(corpus_dct):
+def get_inverted_index(corpus_dct, method_type):
     '''
     Given the corpus dictionary, build the inverted dictionary.
     Key: herb or symptom -> str
@@ -49,8 +49,14 @@ def get_inverted_index(corpus_dct):
     inverted_index = {}
     for key in corpus_dct:
         disease_list, symptom_list, herb_list = corpus_dct[key]
-        # TODO: document length is either num symptoms, or num symptoms + herbs.
-        avg_doc_len += len(symptom_list)
+
+        if 'no' in method_type:
+            avg_doc_len += len(symptom_list)
+        else:
+            # TODO: change back to symptom and herb list.
+            # avg_doc_len += len(symptom_list + herb_list)
+            avg_doc_len += len(symptom_list)
+
         # Update the entry for each symptom and each herb.
         for symptom in symptom_list:
             if symptom not in inverted_index:
@@ -63,13 +69,15 @@ def get_inverted_index(corpus_dct):
     avg_doc_len /= float(len(corpus_dct))
     return inverted_index
 
-def okapi_bm25(query_list, doc_list, inverted_index):
+def okapi_bm25(query_list, document, inverted_index):
     '''
     Given a query and a document, compute the Okapi BM25 score. Returns a float.
     '''
     score = 0.0
-    doc_len = float(len(doc_list))
+    doc_len = float(len(document))
     for term in query_list:
+        if term not in document:
+            continue
         if term in inverted_index:
             n_docs_term = len(inverted_index[term])
         else:
@@ -86,10 +94,19 @@ def get_rel_score(query_disease_list, doc_disease_list):
     This function determines how we compute a relevance score between a query's
     diseases and the document's diseases.
     '''
-    # Currently, computing the intersection between the two.
-    return len(set(query_disease_list).intersection(doc_disease_list))
+    size_inter = len(set(query_disease_list).intersection(doc_disease_list))
+    # Computing the intersection between the two for gain.
+    if rank_metric == 'ndcg':
+        return size_inter / float(len(query_disease_list) * len(
+            doc_disease_list))
+    # Otherwise, binary relevance.
+    else:
+        if size_inter > 0:
+            return 1
+        else:
+            return 0
 
-def evaluate_retrieval(query_dct, corpus_dct, inverted_index):
+def evaluate_retrieval(query_dct, corpus_dct, inverted_index, method_type):
     '''
     Given a query dictionary and a corpus dictionary, go through each query and
     determine the precision, recall, and F1 measure for its retrieval with the
@@ -98,8 +115,8 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index):
     global num_docs
     num_docs = len(corpus_dct)
 
-    ndcg_list = []
-    ndcg_dct = {}
+    metric_list = []
+    metric_dct = {}
 
     for query_key in query_dct:
         score_dct = {}
@@ -110,53 +127,70 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index):
         for doc_key in corpus_dct:
             (doc_disease_list, doc_symptom_list, doc_herb_list
                 ) = corpus_dct[doc_key]
-            # TODO: Instead of doc_symptom_list, we can do similarity with
-            # doc_symptom_list + doc_herb_list for the expanded queries.
-            score = okapi_bm25(query_symptom_list, doc_symptom_list,
-                inverted_index)
+
+            # With no query expansion, our document is just the set of symptoms.
+            if 'no' in method_type:
+                document = doc_symptom_list
+            # With query expansion, our document can be both symptoms and herbs.
+            else:
+                # TODO: Change back to both symptoms and herbs.
+                # document = doc_symptom_list + doc_herb_list
+                document = doc_symptom_list
+
+            score = okapi_bm25(query_symptom_list, document, inverted_index)
             # Compute the relevance judgement.
             relevance = get_rel_score(query_disease_list, doc_disease_list)
             score_dct[(doc_key, relevance)] = score
+
+        sorted_scores = sorted(score_dct.items(), key=operator.itemgetter(1),
+            reverse=True)
+        # Get the relevance rankings.
+        rel_list = [pair[0][1] for pair in sorted_scores]
+
+        # Compute different rank metrics for different values of k.
         for k in k_list:
-            # Sort the score dictionary. Keep the top k ranks.
-            sorted_scores = sorted(score_dct.items(),
-                key=operator.itemgetter(1), reverse=True)[:k]
-            # Get only the relevance judgements for the top k ranked documents.
-            rel_list = [pair[0][1] for pair in sorted_scores]
-            if k not in ndcg_dct:
-                ndcg_dct[k] = []
-            ndcg_dct[k] += [ndcg_at_k(rel_list, k)]
-    return ndcg_dct
+            if k not in metric_dct:
+                metric_dct[k] = []
+            if rank_metric == 'ndcg':
+                metric_dct[k] += [ndcg_at_k(rel_list, k)]
+            elif rank_metric == 'precision':
+                metric_dct[k] += [precision_at_k(rel_list, k)]
+    return metric_dct
 
 def main():
-    if len(sys.argv) != 2:
-        print 'Usage: python %s no/lda/bilda' % sys.argv[0]
+    if len(sys.argv) != 3:
+        print 'Usage: python %s no/lda/bilda rank_metric' % sys.argv[0]
         exit()
-    global lda_type
+    global rank_metric
     assert sys.argv[1] in ['no', 'lda', 'bilda']
     method_type = '%s_expansion' % sys.argv[1]
+    rank_metric = sys.argv[2]
+    assert rank_metric in ['ndcg', 'precision', 'recall']
 
-    avg_ndcg_dct = {}
+    all_metric_dct = {}
+    # range(10) because we are performing 10-fold CV.
     for run_num in range(10):
         test_fname = './data/train_test/test_%s_%d.txt' % (method_type, run_num)
+        # We never perform query expansion on the training set.
         train_fname = './data/train_test/train_no_expansion_%d.txt' % run_num
         query_dct = read_input_file(test_fname)
         corpus_dct = read_input_file(train_fname)
-        inverted_index = get_inverted_index(corpus_dct)
+        inverted_index = get_inverted_index(corpus_dct, method_type)
 
-        ndcg_dct = evaluate_retrieval(query_dct, corpus_dct, inverted_index)
-        # Average the ndcg across all runs.
+        metric_dct = evaluate_retrieval(query_dct, corpus_dct, inverted_index,
+            method_type)
+        # Compile the metric scores across all runs.
         for k in k_list:
-            ndcg_list = ndcg_dct[k]
-            if k not in avg_ndcg_dct:
-                avg_ndcg_dct[k] = []
-            avg_ndcg_dct[k] += ndcg_list
+            metric_list = metric_dct[k]
+            if k not in all_metric_dct:
+                all_metric_dct[k] = []
+            all_metric_dct[k] += metric_list
 
-    out = open('./results/ndcg_%s.txt' % method_type, 'w')
+    out = open('./results/%s_%s.txt' % (rank_metric, method_type), 'w')
     for k in k_list:
-        ndcg_list = avg_ndcg_dct[k]
-        avg_ndcg = sum(ndcg_list) / float(len(ndcg_list))
-        out.write('%f\t%d\n' % (avg_ndcg, k))        
+        metric_list = all_metric_dct[k]
+        for metric in metric_list:
+            out.write('%f\t%d\n' % (metric, k))
     out.close()
 
 if __name__ == '__main__':
