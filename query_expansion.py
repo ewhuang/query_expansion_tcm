@@ -1,3 +1,5 @@
+import collections
+import os 
 import numpy as np
 import sys
 import time
@@ -50,6 +52,50 @@ def get_highest_prob_words(symptom_list, scaled_topic, code_list):
         if len(expansion_terms) == 2 * num_symptoms:
             break
     return expansion_terms
+def get_highest_cooccuring_words(symptom_list,run_num):
+    '''
+    Given the symptom list, find the highest co-occuring topics
+    then find the highest co-occuring words in those topics. 
+    '''
+    with open("./data/sequence/pltm_output_topics{}.txt".format(run_num)) as f : 
+        lines = f.readlines()
+        #Process the MALLET output into a list of list of top topic words 
+        herb_top_topic_words =[]
+        sympt_top_topic_words =[]
+        for l in lines: 
+            ls =l.split('\t')
+            if len(ls) ==2:
+                #Beginning of a new topic
+                pass
+            else:
+        #         print ls[0]
+        #         print ls[3]
+                word_lst = ls[3].split(" ")
+                if int(ls[0])==0:
+                    #HERB language
+                    herb_top_topic_words.append(word_lst)
+                elif int(ls[0])==1:
+                    #SYMPT language
+                    sympt_top_topic_words.append(word_lst)
+    #Compute co-occurence
+    cooccurence =[filter(lambda x: x in symptom_list, topic_lst) for topic_lst in sympt_top_topic_words]
+    cooccurence_count = [len(c) for c in cooccurence] #cooccurence count for each topic 
+    num_symptom = len(symptom_list)
+    #top-k cooccurence topics index
+    topk_topics  = np.argsort(cooccurence_count)[::-1][:3*num_symptom+1]
+    #find query expansion terms by looking at top-occuring words in those topics 
+    topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[topk_topics]
+
+    flatten_lst = []
+    for word_lst in topk_sympt_top_topic_words:
+        flatten_lst+=word_lst
+
+    word_counter = collections.Counter(flatten_lst)
+    expansion_terms = []
+    for k,v in word_counter.most_common(2*num_symptom+1):
+        if k!='\n':
+            expansion_terms.append(k)
+    return expansion_terms
 
 def query_expansion(run_num):
     '''
@@ -57,21 +103,23 @@ def query_expansion(run_num):
     on the words that most co-occur with the query symptoms. Co-occurrence is
     computed by appearances in the topics output by the different LDA models.
     '''
-    code_list = read_code_list(run_num)
-    word_distr = np.loadtxt('./results/%s_word_distributions/'
-        '%s_word_distribution_%d.txt' % (lda_type, lda_type, run_num))
+    if lda_type=='lda':
+        code_list = read_code_list(run_num)
+        word_distr = np.loadtxt('./results/%s_word_distributions/'
+            '%s_word_distribution_%d.txt' % (lda_type, lda_type, run_num))
     
-    out = open('./data/train_test/test_lda_expansion_%d.txt' % run_num, 'w')
+    out = open('./data/train_test/test_%s_expansion_%d.txt' %(lda_type,run_num) , 'w')
     f = open('./data/train_test/test_no_expansion_%d.txt' % run_num, 'r')
     for query in f:
         # Split by tab, fifth element, split by comma, take out trailing comma.
         query = query.split('\t')
         symptom_list = query[4].split(':')[:-1]
-
-        scaled_topic = get_scaled_topic(symptom_list, word_distr, code_list)
-        expansion_terms = get_highest_prob_words(symptom_list, scaled_topic,
-            code_list)
-
+        if lda_type =='lda':
+            scaled_topic = get_scaled_topic(symptom_list, word_distr, code_list)
+            expansion_terms = get_highest_prob_words(symptom_list, scaled_topic,
+                code_list)
+        elif lda_type=='bilda':
+            expansion_terms = get_highest_cooccuring_words(symptom_list,run_num)
         # Write expanded query to file
         expanded_query = query[:]
         expanded_query[4] += ':'.join(expansion_terms) + ':'
