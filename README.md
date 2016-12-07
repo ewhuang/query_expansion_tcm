@@ -2,7 +2,13 @@
 
 ### Preprocessing
     
-1.  Splits the HIS_tuple_word.txt data file into 10 different pairs of train/
+1. Removes blank records.
+
+    ```bash
+    $ python remove_blank_queries.py
+    ```
+
+2.  Splits the HIS_tuple_word.txt data file into 10 different pairs of train/
     test data sets.
 
     ```bash
@@ -26,7 +32,13 @@
     query terms.
 
     ```bash
-    $ python query_expansion.py lda/bilda
+    $ python topic_query_expansion.py lda/bilda
+    ```
+
+2.  Adds the synonyms to each query based on the herb-symptom dictionary.
+
+    ```bash
+    $ python synonym_query_expansion.py
     ```
 
 ### Method Evaluations
@@ -37,7 +49,7 @@
     diseases between the query and document.
 
     ```bash
-    $ python retrieval_evaluation.py no/lda/bilda rank_metric
+    $ python retrieval_evaluation.py no/lda/bilda/synonym rank_metric
     ```
 
     rank_metric in ['ndcg', 'precision', 'recall']
@@ -46,5 +58,5 @@
     expansion to the baseline without expansion.
 
     ```bash
-    $ python significance_test.py lda/bilda
+    $ python significance_test.py lda/bilda/synonym rank_metric
     ```

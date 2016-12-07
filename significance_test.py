@@ -22,11 +22,11 @@ def read_ndcg_dct(method_type):
 
 def main():
     if len(sys.argv) != 3:
-        print 'Usage: python %s lda/bilda rank_metric' % sys.argv[0]
+        print 'Usage: python %s lda/bilda/synonym rank_metric' % sys.argv[0]
         exit()
     global rank_metric
     method_type, rank_metric = sys.argv[1:]
-    assert method_type in ['lda', 'bilda']
+    assert method_type in ['lda', 'lda_both', 'bilda', 'bilda_both', 'synonym']
     assert rank_metric in ['ndcg', 'precision', 'recall']
 
     baseline_ndcg_dct = read_ndcg_dct('no_expansion')
@@ -35,7 +35,8 @@ def main():
         baseline_ndcg_list = baseline_ndcg_dct[k]
         lda_ndcg_list = lda_ndcg_dct[k]
         print k
-        print 'baseline', np.mean(baseline_ndcg_list), 'lda', np.mean(lda_ndcg_list)
+        print 'baseline', np.mean(baseline_ndcg_list), method_type, np.mean(
+            lda_ndcg_list)
         print ttest_rel(baseline_ndcg_list, lda_ndcg_list)
         print ''
 

@@ -52,9 +52,9 @@ def get_inverted_index(corpus_dct, method_type):
 
         if 'no' in method_type:
             avg_doc_len += len(symptom_list)
+        elif 'both' in method_type or 'synonym' in method_type:
+            avg_doc_len += len(symptom_list + herb_list)
         else:
-            # TODO: change back to symptom and herb list.
-            # avg_doc_len += len(symptom_list + herb_list)
             avg_doc_len += len(symptom_list)
 
         # Update the entry for each symptom and each herb.
@@ -97,8 +97,7 @@ def get_rel_score(query_disease_list, doc_disease_list):
     size_inter = len(set(query_disease_list).intersection(doc_disease_list))
     # Computing the intersection between the two for gain.
     if rank_metric == 'ndcg':
-        return size_inter / float(len(query_disease_list) * len(
-            doc_disease_list))
+        return size_inter / float(len(query_disease_list))
     # Otherwise, binary relevance.
     else:
         if size_inter > 0:
@@ -131,10 +130,9 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index, method_type):
             # With no query expansion, our document is just the set of symptoms.
             if 'no' in method_type:
                 document = doc_symptom_list
-            # With query expansion, our document can be both symptoms and herbs.
+            elif 'both' in method_type or 'synonym' in method_type:
+                document = doc_symptom_list + doc_herb_list
             else:
-                # TODO: Change back to both symptoms and herbs.
-                # document = doc_symptom_list + doc_herb_list
                 document = doc_symptom_list
 
             score = okapi_bm25(query_symptom_list, document, inverted_index)
@@ -159,10 +157,10 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index, method_type):
 
 def main():
     if len(sys.argv) != 3:
-        print 'Usage: python %s no/lda/bilda rank_metric' % sys.argv[0]
+        print 'Usage: python %s no/lda/bilda/synonym rank_metric' % sys.argv[0]
         exit()
     global rank_metric
-    assert sys.argv[1] in ['no', 'lda', 'bilda']
+    assert sys.argv[1] in ['no', 'lda', 'lda_both', 'bilda', 'bilda_both', 'synonym']
     method_type = '%s_expansion' % sys.argv[1]
     rank_metric = sys.argv[2]
     assert rank_metric in ['ndcg', 'precision', 'recall']
