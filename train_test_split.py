@@ -7,7 +7,7 @@ def partition(lst, n):
     return [ lst[int(round(division * i)): int(round(division * (i + 1))
         )] for i in xrange(n) ]
 
-records = pd.read_csv('./data/HIS_tuple_word.txt',delimiter='\t',header=None)
+records = pd.read_csv('./data/clean_HIS_tuple_word.txt',delimiter='\t',header=None)
 numRecords = records.shape[0]
 testSize=numRecords*0.1
 trainSize=numRecords*0.9
