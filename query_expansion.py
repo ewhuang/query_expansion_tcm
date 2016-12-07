@@ -52,7 +52,7 @@ def get_highest_prob_words(symptom_list, scaled_topic, code_list):
         if len(expansion_terms) == 2 * num_symptoms:
             break
     return expansion_terms
-def get_highest_cooccuring_words(symptom_list,run_num):
+def get_highest_cooccuring_words(symptom_list,run_num,sh_mixed=False):
     '''
     Given the symptom list, find the highest co-occuring topics
     then find the highest co-occuring words in those topics. 
@@ -77,27 +77,41 @@ def get_highest_cooccuring_words(symptom_list,run_num):
                 elif int(ls[0])==1:
                     #SYMPT language
                     sympt_top_topic_words.append(word_lst)
-    #Compute co-occurence
-    cooccurence =[filter(lambda x: x in symptom_list, topic_lst) for topic_lst in sympt_top_topic_words]
-    cooccurence_count = [len(c) for c in cooccurence] #cooccurence count for each topic 
-    num_symptom = len(symptom_list)
-    #top-k cooccurence topics index
-    topk_topics  = np.argsort(cooccurence_count)[::-1][:3*num_symptom+1]
-    #find query expansion terms by looking at top-occuring words in those topics 
-    topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[topk_topics]
 
+    num_symptom = len(symptom_list)
+    #Mixing together symptom and herb
+    #if sh_mixed: sympt_top_topic_words.extend(herb_top_topic_words)
+    #Compute co-occurence
+    sympt_cooccurence =[filter(lambda x: x in symptom_list, topic_lst) for topic_lst in sympt_top_topic_words]
+    sympt_cooccurence_count = [len(c) for c in sympt_cooccurence] #cooccurence count for each topic 
+    #top-k cooccurence topics index
+    sympt_topk_topics  = np.argsort(sympt_cooccurence_count)[::-1][:3*num_symptom+1]
+    #find query expansion terms by looking at top-occuring words in those topics 
+    topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[sympt_topk_topics]
     flatten_lst = []
     for word_lst in topk_sympt_top_topic_words:
         flatten_lst+=word_lst
-
     word_counter = collections.Counter(flatten_lst)
     expansion_terms = []
     for k,v in word_counter.most_common(2*num_symptom+1):
         if k!='\n':
             expansion_terms.append(k)
+    
+    if sh_mixed: 
+        topk_herb_top_topic_words = np.array(herb_top_topic_words)[sympt_topk_topics]
+        # print "topk_herb_top_topic_words: "
+        flatten_lst = []
+        for word_lst in topk_herb_top_topic_words:
+            flatten_lst+=word_lst
+
+        word_counter = collections.Counter(flatten_lst)
+        for k,v in word_counter.most_common(2*num_symptom+1):
+            if k!='\n':
+                expansion_terms.append(k)
+                # print k
     return expansion_terms
 
-def query_expansion(run_num):
+def query_expansion(run_num,sh_mixed=False):
     '''
     Goes through the basic test queries created by train_test_split.py, and adds
     on the words that most co-occur with the query symptoms. Co-occurrence is
@@ -108,36 +122,45 @@ def query_expansion(run_num):
         word_distr = np.loadtxt('./results/%s_word_distributions/'
             '%s_word_distribution_%d.txt' % (lda_type, lda_type, run_num))
     
-    out = open('./data/train_test/test_%s_expansion_%d.txt' %(lda_type,run_num) , 'w')
+    if sh_mixed:
+        out = open('./data/train_test/test_%s_expansion_%d_SHmixed.txt' %(lda_type,run_num) , 'w')
+    else:
+        out = open('./data/train_test/test_%s_expansion_%d.txt' %(lda_type,run_num) , 'w')
     f = open('./data/train_test/test_no_expansion_%d.txt' % run_num, 'r')
     for query in f:
         # Split by tab, fifth element, split by comma, take out trailing comma.
-        query = query.split('\t')
+        query = query.split('\t') 
         symptom_list = query[4].split(':')[:-1]
-        if lda_type =='lda':
-            scaled_topic = get_scaled_topic(symptom_list, word_distr, code_list)
-            expansion_terms = get_highest_prob_words(symptom_list, scaled_topic,
-                code_list)
-        elif lda_type=='bilda':
-            expansion_terms = get_highest_cooccuring_words(symptom_list,run_num)
-        # Write expanded query to file
-        expanded_query = query[:]
-        expanded_query[4] += ':'.join(expansion_terms) + ':'
-        
-        out.write('\t'.join(expanded_query))
+        if len(symptom_list)!=0:
+            if lda_type =='lda':
+                scaled_topic = get_scaled_topic(symptom_list, word_distr, code_list)
+                expansion_terms = get_highest_prob_words(symptom_list, scaled_topic,
+                    code_list)
+            elif lda_type=='bilda':
+                expansion_terms = get_highest_cooccuring_words(symptom_list,run_num,sh_mixed=sh_mixed)
+            # Write expanded query to file
+            expanded_query = query[:]
+            expanded_query[4] += ':'.join(expansion_terms) + ':'
+            
+            out.write('\t'.join(expanded_query))
     f.close()
     out.close()
 
 def main():
-    if len(sys.argv) != 2:
-        print 'Usage: python %s lda/bilda' % sys.argv[0]
+    if len(sys.argv) != 3:
+        print 'Usage: python %s lda/bilda sh_mixed' % sys.argv[0]
         exit()
     global lda_type
     lda_type = sys.argv[1]
     assert lda_type in ['lda', 'bilda']
+    if sys.argv[2]== 'sh_mixed':
+        sh_mixed = True
+    else:
+        sh_mixed=False
+
 
     for run_num in range(10):
-        query_expansion(run_num)
+        query_expansion(run_num,sh_mixed=sh_mixed)
 
 if __name__ == '__main__':
     start_time = time.time()

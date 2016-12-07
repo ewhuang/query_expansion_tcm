@@ -39,7 +39,7 @@ def make_mallet_herb_symptom_files(fold_num):
         symptom_corpus.write(sdoc)
     herb_corpus.close()
     symptom_corpus.close()
-    # Convert formatted text file to MALLET sequence files 
+    # Convert formatted text file to MALLET sequence files
     os.system("../../../mallet-2.0.8/bin/mallet import-file --input herb{0}.txt  --output herb{0}.sequences ".format(fold_num)+ "--keep-sequence --token-regex '\p{L}+'")
     os.system("../../../mallet-2.0.8/bin/mallet import-file --input symptom{0}.txt  --output symptom{0}.sequences ".format(fold_num)+ "--keep-sequence --token-regex '\p{L}+'")
     os.chdir("../../")
@@ -49,5 +49,5 @@ os.chdir("data/sequence/")
 for fold_num in range(10):
     print "Working on %s "%fold_num
     os.system("../../../mallet-2.0.8/bin/mallet run cc.mallet.topics.PolylingualTopicModel \
-    --output-topic-keys pltm_output_topics{0}.txt --num-top-words 50\
+    --output-topic-keys pltm_output_topics{0}.txt --num-top-words 200\
     --language-inputs herb{0}.sequences  symptom{0}.sequences  --num-topics 96 --optimize-interval 10".format(fold_num))
