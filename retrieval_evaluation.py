@@ -50,9 +50,7 @@ def get_inverted_index(corpus_dct, method_type):
     for key in corpus_dct:
         disease_list, symptom_list, herb_list = corpus_dct[key]
 
-        if 'no' in method_type:
-            avg_doc_len += len(symptom_list)
-        elif 'both' in method_type or 'synonym' in method_type:
+        if 'both' in method_type or 'synonym' in method_type:
             avg_doc_len += len(symptom_list + herb_list)
         else:
             avg_doc_len += len(symptom_list)
@@ -128,9 +126,7 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index, method_type):
                 ) = corpus_dct[doc_key]
 
             # With no query expansion, our document is just the set of symptoms.
-            if 'no' in method_type:
-                document = doc_symptom_list
-            elif 'both' in method_type or 'synonym' in method_type:
+            if 'both' in method_type or 'synonym' in method_type:
                 document = doc_symptom_list + doc_herb_list
             else:
                 document = doc_symptom_list
