@@ -36,7 +36,7 @@ def get_scaled_topic(symptom_list, word_distr, code_list):
     elementwise.
     '''
     # Number of top words to define a topic.
-    n_top_words = 100
+    n_top_words = 200
     scaled_topic = np.zeros(len(code_list))
 
     for i, topic_dist in enumerate(word_distr):

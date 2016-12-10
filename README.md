@@ -63,7 +63,7 @@
     diseases between the query and document.
 
     ```bash
-    $ python retrieval_evaluation.py no/lda/bilda/synonym rank_metric
+    $ python retrieval_evaluation.py no/lda/lda_mixed/bilda/bilda_mixed/embedding/embedding_mixed/synonym rank_metric
     ```
 
     rank_metric in ['ndcg', 'precision', 'recall']
@@ -72,5 +72,5 @@
     expansion to the baseline without expansion.
 
     ```bash
-    $ python significance_test.py lda/bilda/synonym rank_metric
+    $ python significance_test.py lda/lda_mixed/bilda/bilda_mixed/embedding/embedding_mixed/synonym rank_metric
     ```

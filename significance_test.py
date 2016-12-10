@@ -10,29 +10,29 @@ import time
 
 def read_ndcg_dct(method_type):
     ndcg_dct = {}
-    f = open('./results/%s_%s.txt' % (rank_metric, method_type), 'r')
+    f = open('./results/%s_%s.txt' % (method_type, rank_metric), 'r')
     for line in f:
         ndcg, k = line.split()
-        ndcg = float(ndcg)
         if k not in ndcg_dct:
             ndcg_dct[k] = []
-        ndcg_dct[k] += [ndcg]
+        ndcg_dct[k] += [float(ndcg)]
     f.close()
     return ndcg_dct
 
 def main():
     if len(sys.argv) != 3:
-        print 'Usage: python %s lda/bilda/synonym rank_metric' % sys.argv[0]
+        print ('Usage: python %s lda/lda_mixed/bilda/bilda_mixed/embedding/'
+            'embedding_mixed/synonym rank_metric' % sys.argv[0])
         exit()
     global rank_metric
     method_type, rank_metric = sys.argv[1:]
-    assert (method_type in ['lda', 'lda_both', 'bilda', 'bilda_both', 'synonym',
-        'embedding', 'embedding_both'])
+    assert (method_type in ['lda', 'lda_mixed', 'bilda', 'bilda_mixed',
+        'synonym', 'embedding', 'embedding_mixed'])
     assert rank_metric in ['ndcg', 'precision', 'recall']
 
     baseline_ndcg_dct = read_ndcg_dct('no_expansion')
     lda_ndcg_dct = read_ndcg_dct('%s_expansion' % method_type)
-    for k in baseline_ndcg_dct:
+    for k in sorted(baseline_ndcg_dct.keys()):
         baseline_ndcg_list = baseline_ndcg_dct[k]
         lda_ndcg_list = lda_ndcg_dct[k]
         print k

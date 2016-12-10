@@ -8,7 +8,7 @@ import time
 ### This script rewrites the test files, except with query expansion performed
 ### on each query patient's list of symptoms. Query expansion is done by
 ### word embeddings.
-### Run time: 
+### Run time: 73 minutes.
 
 def get_similarity_code_list():
     '''

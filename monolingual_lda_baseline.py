@@ -11,7 +11,7 @@ import time
 ### original data). Writes out the herb counts, symptom counts, code list (for
 ### mapping symptoms/herbs to integers), and the word distributions for each
 ### topic. The number of topics will match the number of unique diseases.
-### Run time for 5000 iterations: 3 hours.
+### Run time for 5000 iterations: 3.5 hours.
 
 date_format = '%Y-%m-%d'
 
