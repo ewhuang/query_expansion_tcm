@@ -72,7 +72,7 @@ def get_patient_dct(filename):
 
     return patient_dct, disease_set
 
-def get_symptom_and_herb_counts(patient_dct, fold_num):
+def get_symptom_and_herb_counts(patient_dct, run_num):
     '''
     Given the patient dictionary, count the symptom and herb occurrences in
     patients with more than one visit. Writes the counts out to file.
@@ -96,24 +96,24 @@ def get_symptom_and_herb_counts(patient_dct, fold_num):
 
     # Write out the unique symptoms and herbs to file.
     herb_out = open('./data/count_dictionaries/herb_count_dct_%s.txt' %
-        fold_num, 'w')
+        run_num, 'w')
     for herb in herb_count_dct:
         herb_out.write('%s\t%d\n' % (herb, herb_count_dct[herb]))
     herb_out.close()
 
     symptom_out = open('./data/count_dictionaries/symptom_count_dct_%s.txt' %
-        fold_num, 'w')
+        run_num, 'w')
     for symptom in symptom_count_dct:
         symptom_out.write('%s\t%d\n' % (symptom, symptom_count_dct[symptom]))
     symptom_out.close()
 
     return list(set(symptom_count_dct.keys()).union(herb_count_dct.keys()))
 
-def write_code_list(code_list, fold_num):
+def write_code_list(code_list, run_num):
     '''
     Writes the code list out to file.
     '''
-    out = open('./data/code_lists/code_list_%s.txt' % fold_num, 'w')
+    out = open('./data/code_lists/code_list_%s.txt' % run_num, 'w')
     for code in code_list:
         out.write('%s\n' % code)
     out.close()
@@ -142,14 +142,14 @@ def run_baseline_lda(patient_matrix, code_list, disease_set):
 def main():
     generate_folders()
 
-    for fold_num in range(10):
+    for run_num in range(10):
         # Fetch the training patient record dictionary.
-        patient_fname = './data/train_test/train_no_expansion_%s.txt' % fold_num
+        patient_fname = './data/train_test/train_no_expansion_%s.txt' % run_num
         patient_dct, disease_set = get_patient_dct(patient_fname)
 
         # code_list is the vocabulary list.
-        code_list = get_symptom_and_herb_counts(patient_dct, fold_num)
-        write_code_list(code_list, fold_num)
+        code_list = get_symptom_and_herb_counts(patient_dct, run_num)
+        write_code_list(code_list, run_num)
 
         # Convert the patient dictionary to a matrix for LDA.
         patient_matrix = get_matrix_from_dct(patient_dct, code_list)
@@ -157,7 +157,7 @@ def main():
         # Run LDA.
         topic_word = run_baseline_lda(patient_matrix, code_list, disease_set)
         np.savetxt('./results/lda_word_distributions/lda_word_distribution_%s'
-            '.txt' % fold_num, topic_word)
+            '.txt' % run_num, topic_word)
 
 if __name__ == '__main__':
     start_time = time.time()

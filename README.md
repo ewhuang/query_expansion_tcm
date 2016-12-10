@@ -55,6 +55,13 @@
     $ python embedding_query_expansion.py mixed<optional>
     ```
 
+4.  med2vec query expansion. Must first grab the med2vec.py file from the
+    https://github.com/mp2893/med2vec.
+
+    ```bash
+    $ python med2vec_query_expansion.py
+    ```
+
 ### Method Evaluations
 
 1.  Evaluates the retrievals using Okapi BM25. Relevant documents are patient
