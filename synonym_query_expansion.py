@@ -58,12 +58,14 @@ def get_expansion_terms(symptom_list, herb_symptom_dct):
             expansion_terms += herb_symptom_dct[symptom]
     return list(set(expansion_terms))
 
-def query_expansion(run_num, herb_symptom_dct):
+def query_expansion(run_num):
     '''
     Performs the query expansion on a particular fold of the test sets. Adds
     to each symptom list the herbs that each symptom treats according to the
     herb-symptom dictionary.
     '''
+    herb_symptom_dct = get_medicine_dictionary_file(run_num)
+
     out = open('./data/train_test/test_synonym_expansion_%d.txt' % run_num, 'w')
     f = open('./data/train_test/test_no_expansion_%d.txt' % run_num, 'r')
     for query in f:
@@ -83,8 +85,7 @@ def query_expansion(run_num, herb_symptom_dct):
 
 def main():
     for run_num in range(10):
-        herb_symptom_dct = get_medicine_dictionary_file(run_num)
-        query_expansion(run_num, herb_symptom_dct)
+        query_expansion(run_num)
 
 if __name__ == '__main__':
     start_time = time.time()

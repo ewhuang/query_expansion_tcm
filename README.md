@@ -2,7 +2,7 @@
 
 ### Preprocessing
     
-1. Removes blank records.
+1.  Removes blank records, as well as records that have null name/dob.
 
     ```bash
     $ python remove_blank_queries.py
@@ -15,30 +15,44 @@
     $ python train_test_split.py
     ```
 
-### LDA Baseline
+### LDA training
 
 1.  Runs regular LDA for each of the ten training sets. Writes out the word
-    distributions in nxm format. n is the number of unique diseases, and m
-    is the number of codes. Code mappings follow ./data/code_lists/
+    distributions in nxm format. n is the number of unique diseases (number of
+    topics), and m is the number of codes. Code mappings are under ./data/code_lists/
 
     ```bash
     $ python monolingual_lda_baseline.py
     ```
 
+2.  Runs PLTM for two languages. Reduces to BiLDA.
+
+    ```bash
+    python train_pltm.py
+    ```
+
 ### Query Expansions
 
 1.  Adds the appropriate query expansion terms to each patient record's list of
-    symptoms. The number of expansions terms is equal to twice the number of
-    query terms.
+    symptoms. Add 10 expansion terms. Requires monolingual_lda_baseline.py.
 
     ```bash
-    $ python topic_query_expansion.py lda/bilda
+    $ python lda_query_expansion.py mixed<optional>
     ```
 
-2.  Adds the synonyms to each query based on the herb-symptom dictionary.
+2.  Adds the synonyms to each query based on the herb-symptom dictionary. Can
+    only add herbs. Adds all synonyms, since we have no measure of similarity.
+    Does not require monolingual_lda_baseline.py
 
     ```bash
     $ python synonym_query_expansion.py
+    ```
+
+3.  Adds the most similar terms by word embedding. Run from PaReCat's
+    embeddings on the network constructed by the herb-symptom dictionary.
+
+    ```bash
+    $ python embedding_query_expansion.py mixed<optional>
     ```
 
 ### Method Evaluations

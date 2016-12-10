@@ -26,7 +26,8 @@ def main():
         exit()
     global rank_metric
     method_type, rank_metric = sys.argv[1:]
-    assert method_type in ['lda', 'lda_both', 'bilda', 'bilda_both', 'synonym']
+    assert (method_type in ['lda', 'lda_both', 'bilda', 'bilda_both', 'synonym',
+        'embedding', 'embedding_both'])
     assert rank_metric in ['ndcg', 'precision', 'recall']
 
     baseline_ndcg_dct = read_ndcg_dct('no_expansion')

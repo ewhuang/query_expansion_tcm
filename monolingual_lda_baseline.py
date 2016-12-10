@@ -11,8 +11,9 @@ import time
 ### original data). Writes out the herb counts, symptom counts, code list (for
 ### mapping symptoms/herbs to integers), and the word distributions for each
 ### topic. The number of topics will match the number of unique diseases.
+### Run time for 5000 iterations: 3 hours.
 
-disease_set = set([])
+date_format = '%Y-%m-%d'
 
 def generate_folders():
     '''
@@ -39,9 +40,8 @@ def get_patient_dct(filename):
     containing the diseases, diagnosis dates, symptoms, and herbs of each visit.
     '''
     # Keep track of the unique set of diseases so we know n_topics.
-    global disease_set
-    date_format = '%Y-%m-%d'
-    patient_dct = {}
+    patient_dct, disease_set = {}, set([])
+
     f = open(filename, 'r')
     for i, line in enumerate(f):
         diseases, name, dob, visit_date, symptoms, herbs = line.split('\t')
@@ -58,23 +58,19 @@ def get_patient_dct(filename):
         symptom_list = list(set(symptoms.split(':')[:-1]))
         herb_list = list(set(herbs.split(':')[:-1]))
 
-        # Skip visit records that aren't complete.
-        if len(symptom_list) == 0 or len(herb_list) == 0:
-            continue
-
         # Name, date of birth pair uniquely identifies a patient.
         key = (name, dob)
         # Initialize the patient's visit dictionary.
         if key not in patient_dct:
             patient_dct[key] = {}
-        # If multiple visits in one day, add on one second to each day.
+        # If multiple visits in one day, add on a second to the visit.
         while visit_date in patient_dct[key]:
             visit_date += datetime.timedelta(0,1)
         # list(set()) removes duplicates.
         patient_dct[key][visit_date] = (disease_list, symptom_list, herb_list)
     f.close()
 
-    return patient_dct
+    return patient_dct, disease_set
 
 def get_symptom_and_herb_counts(patient_dct, fold_num):
     '''
@@ -85,8 +81,6 @@ def get_symptom_and_herb_counts(patient_dct, fold_num):
     herb_count_dct, symptom_count_dct = {}, {}
     for key in patient_dct:
         visit_dct = patient_dct[key]
-        if len(visit_dct) == 1:
-            continue
         for date in visit_dct:
             disease_list, symptom_list, herb_list = visit_dct[date]
 
@@ -131,9 +125,6 @@ def get_matrix_from_dct(patient_dct, code_list):
     patient_matrix = []
     for key in patient_dct:
         visit_dct = patient_dct[key]
-        # Skip patients that only had one visit.
-        if len(visit_dct) == 1:
-            continue
         for date in sorted(visit_dct.keys()):
             disease_list, symptom_list, herb_list = visit_dct[date]
             curr_code_list = symptom_list + herb_list
@@ -142,15 +133,10 @@ def get_matrix_from_dct(patient_dct, code_list):
             patient_matrix += [curr_row]
     return np.array(patient_matrix)
 
-def run_baseline_lda(patient_matrix, code_list):
-    model = lda.LDA(n_topics=len(disease_set), n_iter=1500, random_state=1)
+def run_baseline_lda(patient_matrix, code_list, disease_set):
+    model = lda.LDA(n_topics=len(disease_set), n_iter=5000, random_state=1)
     model.fit(patient_matrix)
     topic_word = model.topic_word_
-    # n_top_words = 20
-    # for i, topic_dist in enumerate(topic_word):
-    #     topic_words = np.array(code_list)[np.argsort(topic_dist)][:-(
-    #         n_top_words+1):-1]
-    #     print 'Topic %d: %s' % (i, ','.join(topic_words))
     return topic_word
 
 def main():
@@ -159,7 +145,7 @@ def main():
     for fold_num in range(10):
         # Fetch the training patient record dictionary.
         patient_fname = './data/train_test/train_no_expansion_%s.txt' % fold_num
-        patient_dct = get_patient_dct(patient_fname)
+        patient_dct, disease_set = get_patient_dct(patient_fname)
 
         # code_list is the vocabulary list.
         code_list = get_symptom_and_herb_counts(patient_dct, fold_num)
@@ -169,7 +155,7 @@ def main():
         patient_matrix = get_matrix_from_dct(patient_dct, code_list)
 
         # Run LDA.
-        topic_word = run_baseline_lda(patient_matrix, code_list)
+        topic_word = run_baseline_lda(patient_matrix, code_list, disease_set)
         np.savetxt('./results/lda_word_distributions/lda_word_distribution_%s'
             '.txt' % fold_num, topic_word)
 

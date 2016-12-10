@@ -153,10 +153,12 @@ def evaluate_retrieval(query_dct, corpus_dct, inverted_index, method_type):
 
 def main():
     if len(sys.argv) != 3:
-        print 'Usage: python %s no/lda/bilda/synonym rank_metric' % sys.argv[0]
+        print ('Usage: python %s no/lda/bilda/embedding/synonym rank_metric'
+            % sys.argv[0])
         exit()
     global rank_metric
-    assert sys.argv[1] in ['no', 'lda', 'lda_both', 'bilda', 'bilda_both', 'synonym']
+    assert (sys.argv[1] in ['no', 'lda', 'lda_both', 'bilda', 'bilda_both',
+        'embedding', 'embedding_both', 'synonym'])
     method_type = '%s_expansion' % sys.argv[1]
     rank_metric = sys.argv[2]
     assert rank_metric in ['ndcg', 'precision', 'recall']
