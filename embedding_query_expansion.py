@@ -98,20 +98,22 @@ def get_expansion_terms(symptom_list, similarity_dct, similarity_code_list,
     expansion_terms = [term[0] for term in expansion_terms]
     return expansion_terms
 
-def query_expansion(run_num, similarity_dct, similarity_code_list, mixed):
+def query_expansion(run_num, similarity_dct, similarity_code_list):
     '''
     Runs the query expansion.
     '''
     # The list of medical codes in the training set.
-    training_code_list = get_count_dct('symptom', run_num).keys()
-    if mixed:
-        training_code_list += get_count_dct('herb', run_num).keys()
-    
+    if expansion_type == 'symptoms':
+        training_code_list = get_count_dct('symptom', run_num).keys()[:]
+    elif expansion_type == 'herbs':
+        training_code_list = get_count_dct('herb', run_num).keys()[:]
+    else:
+        training_code_list = get_count_dct('symptom',
+            run_num).keys()[:] + get_count_dct('herb', run_num).keys()[:]
+        
     # Process output filename.
-    out_fname = './data/train_test/test_embedding_'
-    if mixed:
-        out_fname += 'mixed_'
-    out_fname += 'expansion_%d.txt' % run_num
+    out_fname = './data/train_test/test_embedding_%s_expansion_%d.txt' % (
+        expansion_type, run_num)
     print out_fname
 
     out = open(out_fname, 'w')
@@ -133,20 +135,20 @@ def query_expansion(run_num, similarity_dct, similarity_code_list, mixed):
     out.close()
 
 def main():
-    if len(sys.argv) not in [1, 2]:
-        print 'Usage: python %s mixed<optional>' % sys.argv[0]
+    if len(sys.argv) != 2:
+        print ('Usage: python %s herbs/symptoms/mixed' % sys.argv[0])
         exit()
-    mixed = False
-    if len(sys.argv) == 2:
-        assert sys.argv[1] == 'mixed'
-        mixed = True
+    # This variable determines what types of medical codes to add to the query.
+    global expansion_type
+    expansion_type = sys.argv[1]
+    assert expansion_type in ['herbs', 'symptoms', 'mixed']
 
     # The keys will become the mappings for the similarity matrix.
     similarity_code_list = get_similarity_code_list()
     similarity_dct = read_similarity_matrix(similarity_code_list)
 
     for run_num in range(10):
-        query_expansion(run_num, similarity_dct, similarity_code_list, mixed)
+        query_expansion(run_num, similarity_dct, similarity_code_list)
 
 if __name__ == '__main__':
     start_time = time.time()

@@ -49,7 +49,7 @@ def get_scaled_topic(symptom_list, word_distr, code_list):
     return scaled_topic
 
 def get_highest_prob_words(symptom_list, scaled_topic, code_list,
-    symptom_count_dct, mixed):
+    symptom_count_dct):
     '''
     Given the scaled topic, find the top words to add to the given query. Add
     on twice as many expansion terms as there are symptoms.
@@ -58,8 +58,11 @@ def get_highest_prob_words(symptom_list, scaled_topic, code_list,
 
     highest_prob_words = np.array(code_list)[np.argsort(scaled_topic)]
     for candidate in highest_prob_words:
-        # Skip an herb if we are not in mixed mode.
-        if not mixed and candidate not in symptom_count_dct:
+        # Decide whether to add a candidate based on expansion_type.
+        candidate_is_symptom = candidate in symptom_count_dct
+        if expansion_type == 'herbs' and candidate_is_symptom:
+            continue
+        elif expansion_type == 'symptoms' and not candidate_is_symptom:
             continue
         if candidate not in symptom_list:
             expansion_terms += [candidate]
@@ -68,7 +71,7 @@ def get_highest_prob_words(symptom_list, scaled_topic, code_list,
             break
     return expansion_terms
 
-def query_expansion(run_num, mixed):
+def query_expansion(run_num):
     '''
     Goes through the basic test queries created by train_test_split.py, and adds
     on the words that most co-occur with the query symptoms. Co-occurrence is
@@ -80,10 +83,8 @@ def query_expansion(run_num, mixed):
     symptom_count_dct = get_symptom_count_dct(run_num)
     
     # Process filename.
-    out_fname = './data/train_test/test_lda_'
-    if mixed:
-        out_fname += 'mixed_'
-    out_fname += 'expansion_%d.txt' % run_num
+    out_fname = './data/train_test/test_lda_%s_expansion_%d.txt' % (
+        expansion_type, run_num)
 
     out = open(out_fname, 'w')
     f = open('./data/train_test/test_no_expansion_%d.txt' % run_num, 'r')
@@ -94,7 +95,7 @@ def query_expansion(run_num, mixed):
 
         scaled_topic = get_scaled_topic(symptom_list, word_distr, code_list)
         expansion_terms = get_highest_prob_words(symptom_list, scaled_topic,
-            code_list, symptom_count_dct, mixed)
+            code_list, symptom_count_dct)
 
         # Write expanded query to file
         expanded_query = query[:]
@@ -105,17 +106,16 @@ def query_expansion(run_num, mixed):
     out.close()
 
 def main():
-    if len(sys.argv) not in [1, 2]:
-        print ('Usage: python %s mixed<optional>' % sys.argv[0])
+    if len(sys.argv) != 2:
+        print ('Usage: python %s herbs/symptoms/mixed' % sys.argv[0])
         exit()
-    # mixed is a variable indicating we add both symptoms and herbs.
-    mixed = False
-    if len(sys.argv) == 2:
-        assert sys.argv[1] == 'mixed'
-        mixed = True
+    # This variable determines what types of medical codes to add to the query.
+    global expansion_type
+    expansion_type = sys.argv[1]
+    assert expansion_type in ['herbs', 'symptoms', 'mixed']
 
     for run_num in range(10):
-        query_expansion(run_num, mixed)
+        query_expansion(run_num)
 
 if __name__ == '__main__':
     start_time = time.time()

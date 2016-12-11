@@ -21,13 +21,15 @@ def read_ndcg_dct(method_type):
 
 def main():
     if len(sys.argv) != 3:
-        print ('Usage: python %s lda/lda_mixed/bilda/bilda_mixed/embedding/'
-            'embedding_mixed/synonym rank_metric' % sys.argv[0])
+        print ('Usage: python %s no/lda_symptoms/lda_herbs/lda_mixed/bilda_'
+            'symptoms/bilda_herbs/bilda_mixed/embedding_symptoms/embedding_'
+            'herbs/embedding_mixed/synonym' % sys.argv[0])
         exit()
     global rank_metric
     method_type, rank_metric = sys.argv[1:]
-    assert (method_type in ['lda', 'lda_mixed', 'bilda', 'bilda_mixed',
-        'synonym', 'embedding', 'embedding_mixed'])
+    assert (method_type in ['no', 'lda_symptoms', 'lda_herbs', 'lda_mixed',
+        'bilda_symptoms', 'bilda_herbs', 'bilda_mixed', 'embedding_symptoms',
+        'embedding_herbs', 'embedding_mixed', 'synonym'])
     assert rank_metric in ['ndcg', 'precision', 'recall']
 
     baseline_ndcg_dct = read_ndcg_dct('no_expansion')

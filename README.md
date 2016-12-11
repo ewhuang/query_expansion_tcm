@@ -37,7 +37,7 @@
     symptoms. Add 10 expansion terms. Requires monolingual_lda_baseline.py.
 
     ```bash
-    $ python lda_query_expansion.py mixed<optional>
+    $ python lda_query_expansion.py herbs/symptoms/mixed
     ```
 
 2.  Adds the synonyms to each query based on the herb-symptom dictionary. Can
@@ -52,7 +52,7 @@
     embeddings on the network constructed by the herb-symptom dictionary.
 
     ```bash
-    $ python embedding_query_expansion.py mixed<optional>
+    $ python embedding_query_expansion.py herbs/symptoms/mixed
     ```
 
 4.  med2vec query expansion. Must first grab the med2vec.py file from the
@@ -70,7 +70,7 @@
     diseases between the query and document.
 
     ```bash
-    $ python retrieval_evaluation.py no/lda/lda_mixed/bilda/bilda_mixed/embedding/embedding_mixed/synonym rank_metric
+    $ python retrieval_evaluation.py no/lda_symptoms/lda_herbs/lda_mixed/bilda_symptoms/bilda_herbs/bilda_mixed/embedding_symptoms/embedding_herbs/embedding_mixed/synonym rank_metric
     ```
 
     rank_metric in ['ndcg', 'precision', 'recall']
@@ -79,5 +79,5 @@
     expansion to the baseline without expansion.
 
     ```bash
-    $ python significance_test.py lda/lda_mixed/bilda/bilda_mixed/embedding/embedding_mixed/synonym rank_metric
+    $ python significance_test.py no/lda_symptoms/lda_herbs/lda_mixed/bilda_symptoms/bilda_herbs/bilda_mixed/embedding_symptoms/embedding_herbs/embedding_mixed/synonym rank_metric
     ```
