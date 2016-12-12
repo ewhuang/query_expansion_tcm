@@ -49,10 +49,10 @@ def get_highest_prob_words(symptom_list, scaled_topic, code_list):
     for candidate in highest_prob_words:
         if candidate not in symptom_list:
             expansion_terms += [candidate]
-        if len(expansion_terms) == 2 * num_symptoms:
+        if len(expansion_terms) == 10:#2 * num_symptoms:
             break
     return expansion_terms
-def get_highest_cooccuring_words(symptom_list,run_num,sh_mixed=False):
+def get_highest_cooccuring_words(symptom_list,run_num,sh_mixed='sympt_only'):
     '''
     Given the symptom list, find the highest co-occuring topics
     then find the highest co-occuring words in those topics. 
@@ -81,23 +81,42 @@ def get_highest_cooccuring_words(symptom_list,run_num,sh_mixed=False):
     num_symptom = len(symptom_list)
     #Mixing together symptom and herb
     #if sh_mixed: sympt_top_topic_words.extend(herb_top_topic_words)
-    #Compute co-occurence
+
     sympt_cooccurence =[filter(lambda x: x in symptom_list, topic_lst) for topic_lst in sympt_top_topic_words]
     sympt_cooccurence_count = [len(c) for c in sympt_cooccurence] #cooccurence count for each topic 
     #top-k cooccurence topics index
     sympt_topk_topics  = np.argsort(sympt_cooccurence_count)[::-1][:3*num_symptom+1]
-    #find query expansion terms by looking at top-occuring words in those topics 
-    topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[sympt_topk_topics]
-    flatten_lst = []
-    for word_lst in topk_sympt_top_topic_words:
-        flatten_lst+=word_lst
-    word_counter = collections.Counter(flatten_lst)
-    expansion_terms = []
-    for k,v in word_counter.most_common(2*num_symptom+1):
-        if k!='\n':
-            expansion_terms.append(k)
     
-    if sh_mixed: 
+    expansion_terms = []
+    if (sh_mixed=='mixed'):
+        topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[sympt_topk_topics]
+        
+        flatten_lst = []
+        for word_lst in topk_sympt_top_topic_words:
+            flatten_lst+=word_lst
+        topk_herb_top_topic_words = np.array(herb_top_topic_words)[sympt_topk_topics]
+
+        for word_lst in topk_herb_top_topic_words:
+            flatten_lst+=word_lst
+        word_counter = collections.Counter(flatten_lst)
+        for k,v in word_counter.most_common(10+1):
+            if k!='\n':
+                expansion_terms.append(k)
+    #Compute co-occurence
+    elif ( sh_mixed=='sympt' ):
+        #find query expansion terms by looking at top-occuring words in those topics 
+        topk_sympt_top_topic_words = np.array(sympt_top_topic_words)[sympt_topk_topics]
+        
+        flatten_lst = []
+        for word_lst in topk_sympt_top_topic_words:
+            flatten_lst+=word_lst
+        word_counter = collections.Counter(flatten_lst)
+        expansion_terms = []
+        for k,v in word_counter.most_common(10+1):#2*num_symptom+1):
+            if k!='\n':
+                expansion_terms.append(k)
+        
+    elif (sh_mixed=='herb'): 
         topk_herb_top_topic_words = np.array(herb_top_topic_words)[sympt_topk_topics]
         # print "topk_herb_top_topic_words: "
         flatten_lst = []
@@ -105,13 +124,13 @@ def get_highest_cooccuring_words(symptom_list,run_num,sh_mixed=False):
             flatten_lst+=word_lst
 
         word_counter = collections.Counter(flatten_lst)
-        for k,v in word_counter.most_common(2*num_symptom+1):
+        for k,v in word_counter.most_common(10+1):#2*num_symptom+1):
             if k!='\n':
                 expansion_terms.append(k)
-                # print k
+
     return expansion_terms
 
-def query_expansion(run_num,sh_mixed=False):
+def query_expansion(run_num,sh_mixed='sympt_only'):
     '''
     Goes through the basic test queries created by train_test_split.py, and adds
     on the words that most co-occur with the query symptoms. Co-occurrence is
@@ -122,8 +141,8 @@ def query_expansion(run_num,sh_mixed=False):
         word_distr = np.loadtxt('./results/%s_word_distributions/'
             '%s_word_distribution_%d.txt' % (lda_type, lda_type, run_num))
     
-    if sh_mixed:
-        out = open('./data/train_test/test_%s_expansion_%d_SHmixed.txt' %(lda_type,run_num) , 'w')
+    if sh_mixed!='sympt_only':
+        out = open('./data/train_test/test_%s_%s_expansion_%d.txt' %(lda_type,sh_mixed,run_num) , 'w')
     else:
         out = open('./data/train_test/test_%s_expansion_%d.txt' %(lda_type,run_num) , 'w')
     f = open('./data/train_test/test_no_expansion_%d.txt' % run_num, 'r')
@@ -153,10 +172,11 @@ def main():
     global lda_type
     lda_type = sys.argv[1]
     assert lda_type in ['lda', 'bilda']
-    if sys.argv[2]== 'sh_mixed':
-        sh_mixed = True
-    else:
-        sh_mixed=False
+    sh_mixed= sys.argv[2]
+    # if sys.argv[2]== 'sh_mixed':
+    #     sh_mixed = True
+    # else:
+    #     sh_mixed='sympt_only'
 
 
     for run_num in range(10):
